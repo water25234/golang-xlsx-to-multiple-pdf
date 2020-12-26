@@ -55,7 +55,9 @@ func (fs *flags) generateMultiplePdf() error {
 		return fmt.Errorf("sheets is empty")
 	}
 
+	// only get first sheet
 	sheet := xlFile.Sheets[0]
+	// remove title
 	rows := sheet.Rows[1:]
 
 	if rows == nil {
