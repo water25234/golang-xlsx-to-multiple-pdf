@@ -18,6 +18,7 @@ import (
 )
 
 var (
+	extName      = ".pdf"
 	templatePath = "templateHtml/templateHtml.html"
 )
 
@@ -55,11 +56,22 @@ func (fs *flags) generateMultiplePdf() error {
 		return err
 	}
 
+	// create folder
+	os.MkdirAll(fs.folder, os.ModePerm)
+
+	// channel for job
+	fs.jobs(xlFile)
+
+	fmt.Println("--------------- finish work ---------------")
+	return nil
+}
+
+// jobs
+func (fs *flags) jobs(xlFile *xlsx.File) {
 	sheet := xlFile.Sheets[0]
 	rows := sheet.Rows[1:]
-	// channel for job
+
 	jobChans := make(chan jobChannel, len(rows))
-	os.Mkdir(fs.folder, os.ModePerm)
 
 	wg := &sync.WaitGroup{}
 	wg.Add(len(rows))
@@ -88,7 +100,7 @@ func (fs *flags) generateMultiplePdf() error {
 					Nationality:    row.Cells[4].String(),
 					Password:       row.Cells[5].String(),
 				},
-				extName:  ".pdf",
+				extName:  extName,
 				pdfName:  fmt.Sprintf("%s-%s", row.Cells[0].String(), row.Cells[1].String()),
 				tempHTML: fmt.Sprintf("pdfGenerator/cloneTemplate/%s.html", strconv.FormatInt(int64(time.Now().Unix()), 10)),
 			},
@@ -98,9 +110,6 @@ func (fs *flags) generateMultiplePdf() error {
 	close(jobChans)
 
 	wg.Wait()
-
-	fmt.Println("--------------- finish work ---------------")
-	return nil
 }
 
 // work

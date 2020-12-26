@@ -15,7 +15,7 @@ var (
 	protection bool
 
 	rootCmd = &cobra.Command{
-		Use:   "generate-xlsx-to-multiple-pdf",
+		Use:   "generatePDF",
 		Short: "Generate multiple pdf for your xlsx.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r, err := checkFlags()
