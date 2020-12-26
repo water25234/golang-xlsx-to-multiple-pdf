@@ -25,7 +25,6 @@ var (
 type generatePDF struct {
 	*requestPdf
 	body     []byte
-	extName  string
 	pdfName  string
 	tempHTML string
 }
@@ -75,7 +74,7 @@ func (fs *flags) generateMultiplePdf() error {
 
 // jobs
 func (fs *flags) jobs(rows []*xlsx.Row) {
-	jobChans := make(chan jobChannel, len(rows))
+	jobChans := make(chan *jobChannel, len(rows))
 
 	wg := &sync.WaitGroup{}
 	wg.Add(len(rows))
@@ -92,7 +91,8 @@ func (fs *flags) jobs(rows []*xlsx.Row) {
 
 	// collect job
 	for i, row := range rows {
-		jobChans <- jobChannel{
+		pdfName := fmt.Sprintf("%s-%s", row.Cells[0].String(), row.Cells[1].String())
+		jobChans <- &jobChannel{
 			index: i,
 			fileContent: &generatePDF{
 				// To be optimized...
@@ -104,9 +104,8 @@ func (fs *flags) jobs(rows []*xlsx.Row) {
 					Nationality:    row.Cells[4].String(),
 					Password:       row.Cells[5].String(),
 				},
-				extName:  extName,
-				pdfName:  fmt.Sprintf("%s-%s", row.Cells[0].String(), row.Cells[1].String()),
-				tempHTML: fmt.Sprintf("pdfGenerator/cloneTemplate/%s.html", strconv.FormatInt(int64(time.Now().Unix()), 10)),
+				pdfName:  pdfName,
+				tempHTML: fmt.Sprintf("pdfGenerator/cloneTemplate/%s-%s.html", pdfName, strconv.FormatInt(int64(time.Now().Unix()), 10)),
 			},
 		}
 	}
@@ -117,14 +116,20 @@ func (fs *flags) jobs(rows []*xlsx.Row) {
 }
 
 // work
-func (fs *flags) work(job jobChannel) {
+func (fs *flags) work(job *jobChannel) {
+
+	defer os.Remove(job.fileContent.tempHTML)
+
+	defer func() {
+		job = nil
+	}()
 
 	err := job.fileContent.parseTemplate(templatePath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	outputPath := fmt.Sprintf("%s/%s%s", fs.folder, job.fileContent.pdfName, job.fileContent.extName)
+	outputPath := fmt.Sprintf("%s/%s%s", fs.folder, job.fileContent.pdfName, extName)
 
 	if job.fileContent.generatePDF(outputPath) != nil {
 		log.Fatal(err)
@@ -134,8 +139,7 @@ func (fs *flags) work(job jobChannel) {
 		log.Fatal(err)
 	}
 
-	os.Remove(job.fileContent.tempHTML)
-	fmt.Println(fmt.Sprintf("%s is success", fmt.Sprintf("%s%s", job.fileContent.pdfName, job.fileContent.extName)))
+	fmt.Println(fmt.Sprintf("%s is success", fmt.Sprintf("%s%s", job.fileContent.pdfName, extName)))
 }
 
 //parsing template
