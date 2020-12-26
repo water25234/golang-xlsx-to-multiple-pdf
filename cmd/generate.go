@@ -53,24 +53,28 @@ func (fs *flags) generateMultiplePdf() error {
 	}
 
 	if xlFile.Sheets == nil {
-		return err
+		return fmt.Errorf("sheets is empty")
+	}
+
+	sheet := xlFile.Sheets[0]
+	rows := sheet.Rows[1:]
+
+	if rows == nil {
+		return fmt.Errorf("sheets rows is empty")
 	}
 
 	// create folder
 	os.MkdirAll(fs.folder, os.ModePerm)
 
 	// channel for job
-	fs.jobs(xlFile)
+	fs.jobs(rows)
 
 	fmt.Println("--------------- finish work ---------------")
 	return nil
 }
 
 // jobs
-func (fs *flags) jobs(xlFile *xlsx.File) {
-	sheet := xlFile.Sheets[0]
-	rows := sheet.Rows[1:]
-
+func (fs *flags) jobs(rows []*xlsx.Row) {
 	jobChans := make(chan jobChannel, len(rows))
 
 	wg := &sync.WaitGroup{}
