@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"sync"
@@ -19,7 +21,7 @@ import (
 
 var (
 	extName      = ".pdf"
-	templatePath = "templateHtml/templateHtml.html"
+	templatePath = "templateHtml/pdf/templateHtml.html"
 )
 
 type generatePDF struct {
@@ -31,6 +33,7 @@ type generatePDF struct {
 
 type requestPdf struct {
 	Name           string
+	email          string
 	EmployeeNumber string
 	Gender         string
 	Education      string
@@ -43,7 +46,7 @@ type jobChannel struct {
 	fileContent *generatePDF
 }
 
-func (fs *flags) generateMultiplePdf() error {
+func (fs *flags) GenerateMultiplePdf() error {
 	fmt.Println("--------------- start work ---------------")
 
 	xlFile, err := xlsx.OpenFile(fs.readfile)
@@ -120,11 +123,11 @@ func (fs *flags) jobs(rows []*xlsx.Row) {
 // work
 func (fs *flags) work(job *jobChannel) {
 
-	defer os.Remove(job.fileContent.tempHTML)
-
 	defer func() {
 		job = nil
 	}()
+
+	defer os.Remove(job.fileContent.tempHTML)
 
 	err := job.fileContent.parseTemplate(templatePath)
 	if err != nil {
@@ -146,6 +149,11 @@ func (fs *flags) work(job *jobChannel) {
 
 //parsing template
 func (gp *generatePDF) parseTemplate(templateFileName string) (err error) {
+	_, err = filepath.Abs(templateFileName)
+	if err != nil {
+		return errors.New("invalid template name")
+	}
+
 	t, err := template.ParseFiles(templateFileName)
 	if err != nil {
 		return err

@@ -17,7 +17,7 @@ import (
 
 var (
 	inFile       = "example-excel.xlsx"
-	templatePath = "templateHtml/templateHtml.html"
+	templatePath = "templateHtml/pdf/templateHtml.html"
 )
 
 type generatePDF struct {

@@ -14,16 +14,31 @@ var (
 
 	protection bool
 
+	sendMail bool
+
 	rootCmd = &cobra.Command{
 		Use:   "generatePDF",
 		Short: "Generate multiple pdf for your xlsx.",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			r, err := checkFlags()
 			if err != nil {
 				errMsg(err)
 				return err
 			}
-			return r.generateMultiplePdf()
+
+			err = r.GenerateMultiplePdf()
+			if err != nil {
+				return err
+			}
+
+			if sendMail == true {
+				err = r.SendMail()
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
 		},
 	}
 )
@@ -34,12 +49,15 @@ type flags struct {
 	readfile string
 
 	protection bool
+
+	sendMail bool
 }
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&readfile, "readfile", "r", "", "read file content for pin code (default read pinCodeFile.txt)")
 	rootCmd.PersistentFlags().StringVarP(&folder, "folder", "f", "", "create folder (default folder name file)")
 	rootCmd.PersistentFlags().BoolVarP(&protection, "protection", "p", false, "make pdf protection (default protection false)")
+	rootCmd.PersistentFlags().BoolVarP(&sendMail, "sendMail", "s", false, "send Mail (default false means not send mail)")
 }
 
 func checkFlags() (fs *flags, err error) {
@@ -55,6 +73,7 @@ func checkFlags() (fs *flags, err error) {
 		readfile:   readfile,
 		folder:     folder,
 		protection: protection,
+		sendMail:   sendMail,
 	}
 
 	return fs, nil
