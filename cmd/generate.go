@@ -20,8 +20,9 @@ import (
 )
 
 var (
-	extName      = ".pdf"
-	templatePath = "templateHtml/pdf/templateHtml.html"
+	extName = ".pdf"
+
+	templatePath = "templateHtml/pdf/index-3.html"
 )
 
 type generatePDF struct {
@@ -32,13 +33,14 @@ type generatePDF struct {
 }
 
 type requestPdf struct {
-	Name           string
-	email          string
 	EmployeeNumber string
-	Gender         string
-	Education      string
-	Nationality    string
+	Name           string
+	Department     string
+	JobLevel       string
+	JobGrade       string
+	JobTitle       string
 	Password       string
+	Email          string
 }
 
 type jobChannel struct {
@@ -69,6 +71,7 @@ func (fs *flags) GenerateMultiplePdf() error {
 
 	// create folder
 	os.MkdirAll(fs.folder, os.ModePerm)
+	os.MkdirAll(fmt.Sprintf("%s-copy", fs.folder), os.ModePerm)
 
 	// channel for job
 	fs.jobs(rows)
@@ -102,12 +105,14 @@ func (fs *flags) jobs(rows []*xlsx.Row) {
 			fileContent: &generatePDF{
 				// To be optimized...
 				requestPdf: &requestPdf{
-					Name:           row.Cells[0].String(),
-					EmployeeNumber: row.Cells[1].String(),
-					Gender:         row.Cells[2].String(),
-					Education:      row.Cells[3].String(),
-					Nationality:    row.Cells[4].String(),
-					Password:       row.Cells[5].String(),
+					EmployeeNumber: row.Cells[0].String(),
+					Name:           row.Cells[1].String(),
+					Department:     row.Cells[2].String(),
+					JobLevel:       row.Cells[3].String(),
+					JobGrade:       row.Cells[4].String(),
+					JobTitle:       row.Cells[5].String(),
+					Password:       row.Cells[6].String(),
+					Email:          row.Cells[7].String(),
 				},
 				pdfName:  pdfName,
 				tempHTML: fmt.Sprintf("pdfGenerator/cloneTemplate/%s-%s.html", pdfName, strconv.FormatInt(int64(time.Now().Unix()), 10)),
@@ -131,20 +136,47 @@ func (fs *flags) work(job *jobChannel) {
 
 	err := job.fileContent.parseTemplate(templatePath)
 	if err != nil {
+		fmt.Println("parseTemplate failure" + templatePath)
 		log.Fatal(err)
 	}
 
 	outputPath := fmt.Sprintf("%s/%s%s", fs.folder, job.fileContent.pdfName, extName)
+	outputPathCopy := fmt.Sprintf("%s-copy/%s%s", fs.folder, job.fileContent.pdfName, extName)
 
 	if job.fileContent.generatePDF(outputPath) != nil {
+		fmt.Println("parseTemplate failure" + outputPath)
 		log.Fatal(err)
 	}
 
 	if fs.protection == true && job.fileContent.protectionPDF(outputPath) != nil {
+		fmt.Println("protection pdf failure" + outputPath)
 		log.Fatal(err)
 	}
 
+	err = job.fileContent.copyFile(outputPath, outputPathCopy)
+	if err != nil {
+		fmt.Println("copy file")
+		fmt.Println(err)
+	}
+
 	fmt.Println(fmt.Sprintf("%s is success", fmt.Sprintf("%s%s", job.fileContent.pdfName, extName)))
+}
+
+func (gp *generatePDF) copyFile(src, dst string) (err error) {
+	//Read all the contents of the  original file
+	bytesRead, err := ioutil.ReadFile(src)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	//Copy all the contents to the desitination file
+	err = ioutil.WriteFile(dst, bytesRead, 0755)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	return nil
 }
 
 //parsing template
@@ -196,11 +228,15 @@ func (gp *generatePDF) generatePDF(pdfPath string) (err error) {
 
 	err = pdfg.Create()
 	if err != nil {
+		fmt.Println("create pdf failure")
+		fmt.Println(err)
 		return err
 	}
 
 	err = pdfg.WriteFile(pdfPath)
 	if err != nil {
+		fmt.Println("WriteFile pdf failure")
+		fmt.Println(err)
 		return err
 	}
 	return nil
@@ -211,6 +247,8 @@ func (gp *generatePDF) protectionPDF(pdfPath string) (err error) {
 	cmd := exec.Command("pdfcpuGenerator/pdfcpu", "encrypt", "-upw", gp.Password, "-opw", gp.Password, pdfPath)
 	err = cmd.Run()
 	if err != nil {
+		fmt.Println("exec protection pdf failure")
+		fmt.Println(err)
 		return err
 	}
 	return nil

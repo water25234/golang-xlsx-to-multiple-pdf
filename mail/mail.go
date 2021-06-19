@@ -56,17 +56,20 @@ func OAuthGmailService() {
 }
 
 // SendEmailOAUTH2 means
-func SendEmailOAUTH2(to string, data interface{}) (bool, error) {
+func SendEmailOAUTH2(to, folder, pdfName string) (bool, error) {
 
-	emailBodyByte, err := parse.Template(template, data)
+	folderPdfCopy := fmt.Sprintf("%s-copy/%s", folder, pdfName)
+	defer os.Remove(folderPdfCopy)
+
+	emailBodyByte, err := parse.Template(template, nil)
 	if err != nil {
 		return false, errors.New("unable to parse email template")
 	}
 
 	var message gmail.Message
 
-	filename := "林黛玉-KK88892.pdf"
-	fileBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", "pdfFolder", "林黛玉-KK88892.pdf"))
+	filename := pdfName
+	fileBytes, err := ioutil.ReadFile(folderPdfCopy)
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
@@ -82,10 +85,10 @@ func SendEmailOAUTH2(to string, data interface{}) (bool, error) {
 	msg := []byte("Content-Type: multipart/mixed; boundary=" + boundary + " \n" +
 		"MIME-Version: 1.0\n" +
 		"to: " + to + "\n" +
-		"subject: " + "Test Email form Gmail API using OAuth" + "\n\n" +
+		"subject: =?utf-8?B?" + base64.StdEncoding.EncodeToString([]byte("Professional Level 個人通知函")) + "?= \n\n" +
 
 		"--" + boundary + "\n" +
-		"Content-Type: text/plain; charset=" + string('"') + "UTF-8" + string('"') + "\n" +
+		"Content-Type: text/html; charset=" + string('"') + "UTF-8" + string('"') + "\n" +
 		"MIME-Version: 1.0\n" +
 		"Content-Transfer-Encoding: 7bit\n\n" +
 		content + "\n\n" +

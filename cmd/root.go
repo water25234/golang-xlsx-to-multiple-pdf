@@ -12,6 +12,8 @@ var (
 
 	readfile string
 
+	createPdf bool
+
 	protection bool
 
 	sendMail bool
@@ -26,9 +28,11 @@ var (
 				return err
 			}
 
-			err = r.GenerateMultiplePdf()
-			if err != nil {
-				return err
+			if createPdf == true {
+				err = r.GenerateMultiplePdf()
+				if err != nil {
+					return err
+				}
 			}
 
 			if sendMail == true {
@@ -48,6 +52,8 @@ type flags struct {
 
 	readfile string
 
+	createPdf bool
+
 	protection bool
 
 	sendMail bool
@@ -56,6 +62,7 @@ type flags struct {
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&readfile, "readfile", "r", "", "read file content for pin code (default read pinCodeFile.txt)")
 	rootCmd.PersistentFlags().StringVarP(&folder, "folder", "f", "", "create folder (default folder name file)")
+	rootCmd.PersistentFlags().BoolVarP(&createPdf, "createPdf", "c", false, "create pdf (default create pdf false)")
 	rootCmd.PersistentFlags().BoolVarP(&protection, "protection", "p", false, "make pdf protection (default protection false)")
 	rootCmd.PersistentFlags().BoolVarP(&sendMail, "sendMail", "s", false, "send Mail (default false means not send mail)")
 }
@@ -72,6 +79,7 @@ func checkFlags() (fs *flags, err error) {
 	fs = &flags{
 		readfile:   readfile,
 		folder:     folder,
+		createPdf:  createPdf,
 		protection: protection,
 		sendMail:   sendMail,
 	}
